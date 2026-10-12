@@ -84,3 +84,5 @@ By default, Claude Code deletes session transcripts 30 days after their last act
 | `skill/SKILL.md` | The review rubric and report format |
 | `cleanup.py` | "Delete all app data" (never touches reports) |
 | `run.bat` / `build.bat` | Run from source / build the exe |
+| `assets/icon.ico`, `assets/icon.png` | App icon, used for the windows, the taskbar and the exe |
+| `tools/make_icon.py` | Regenerates the icon (dev-only; needs `pip install pillow`) |

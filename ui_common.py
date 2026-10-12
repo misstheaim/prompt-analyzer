@@ -1,6 +1,8 @@
 """Theme constants and window helpers shared by the app's windows."""
 import os
+import sys
 import tkinter as tk
+from pathlib import Path
 
 import sv_ttk
 
@@ -13,6 +15,28 @@ ERROR_FG = "#ff6b6b"
 LINK_FG = "#57c8ff"
 CODE_BG = "#2b2b2b"
 ACCENT = "Accent.TButton"  # sv-ttk's highlighted button style for primary actions
+
+
+def asset_path(name: str) -> Path:
+    # PyInstaller unpacks --add-data files under sys._MEIPASS.
+    base = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
+    return base / "assets" / name
+
+
+def set_app_icon(root: tk.Tk) -> None:
+    """Use assets/icon.ico for every window and for the taskbar button."""
+    if os.name == "nt":
+        try:
+            import ctypes
+            # Without its own AppUserModelID, a script run by pythonw.exe is
+            # grouped on the taskbar under Python's icon instead of ours.
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("PromptAnalyzer.App")
+        except (AttributeError, OSError):
+            pass
+    try:
+        root.iconbitmap(default=str(asset_path("icon.ico")))  # default= applies to all Toplevels
+    except tk.TclError:
+        pass  # missing icon file shouldn't stop the app
 
 
 def apply_theme(root: tk.Tk) -> None:

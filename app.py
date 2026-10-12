@@ -14,7 +14,7 @@ from sessions import DEFAULT_RETENTION_DAYS, list_sessions, retention_days
 from skill_installer import TARGET as SKILL_TARGET, install_skill, skill_installed
 from ui_common import (
     ACCENT, APP_TITLE, ERROR_FG, MUTED_FG, apply_theme, center, dark_title_bar,
-    enable_dpi_awareness, scaled,
+    enable_dpi_awareness, scaled, set_app_icon,
 )
 
 EXPIRING_SOON_DAYS = 7
@@ -465,6 +465,7 @@ def main() -> None:
     enable_dpi_awareness()
     root = tk.Tk()
     root.withdraw()
+    set_app_icon(root)
     apply_theme(root)
     dark_title_bar(root)
     app = App(root)

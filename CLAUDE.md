@@ -39,7 +39,11 @@ There is no test suite.
   - The score is parsed from `**Overall score: N/10**` in the first 4 KB.
   - Deleting a report there is an explicit user action that always asks for confirmation. This is allowed; only the "Delete all app data" cleanup must never touch reports.
 - `md_preview.py` renders Markdown into a `tk.Text` using tags. It deliberately supports only what `skill/SKILL.md` reports use: headings, bold/italic/code/links, lists, `>` quotes at line start, fenced code and `---`. If the report format in the skill changes, check that the renderer still covers it.
-- `ui_common.py` holds the shared theme colors and window helpers (`apply_theme`, `enable_dpi_awareness`, `scaled`, `center`, `dark_title_bar`). Use them for any new window.
+- `ui_common.py` holds the shared theme colors and window helpers (`apply_theme`, `enable_dpi_awareness`, `scaled`, `center`, `dark_title_bar`, `set_app_icon`). Use them for any new window.
+- Icon: `assets/icon.ico` is drawn in code by `tools/make_icon.py` (Pillow, dev-only; a Claude-orange tile with a speech bubble and a checkmark). Change the design there and regenerate; don't edit the `.ico` by hand.
+  - `set_app_icon` uses `iconbitmap(default=…)`, so every Toplevel inherits the icon.
+  - It also sets an explicit AppUserModelID so the taskbar shows this icon instead of Python's.
+  - `build.bat` embeds the icon in the exe (`--icon`) and bundles it for the windows (`--add-data`).
 - `app.py` is the main window. Its tabs, in order, are All sessions, Favorites, Reports (`REPORTS_TAB`) and Settings (`SETTINGS_TAB`). The session button bar is hidden on the Reports and Settings tabs, and the status bar is shared by all tabs.
   - `SettingsForm` holds the path fields, the skill status and validation. It is shared by the first-run `SettingsDialog` and the Settings tab. The window is about 30% of the screen.
   - The first run shows the settings dialog, then the skill-install prompt.
