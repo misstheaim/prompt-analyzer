@@ -14,6 +14,11 @@ It reads your saved Claude Code sessions, takes only the messages **you** typed,
   2. Per-session review, with a rating for each prompt
   3. Recurring patterns: good habits and habits to change
   4. Suggestions, with before/after rewrites (only if there are issues)
+- **Reports tab.** Lists every report with date, name, overall score and size.
+  - Sort by clicking a column header, and type in the filter box to narrow the list.
+  - **Preview** (or double-click / Enter) shows the report as formatted Markdown in its own dark window. You can open several previews side by side. The preview window has **Copy** and **Open externally** buttons.
+  - **Open** uses your default `.md` app, and **Show in folder** opens Explorer with the file selected.
+  - **Rename…** (F2) and **Delete…** (Del, always asks first) manage the files. Right-click a report for the same actions.
 - **Settings tab.** Change the sessions folder, the reports location and the path to `claude.exe`. Every path is checked before saving. **Restore defaults** refills the form with the original values.
 - **Clean removal.** **Delete all app data…** removes the skill and the app's settings after you confirm. Your reports are always kept.
 
@@ -67,7 +72,11 @@ By default, Claude Code deletes session transcripts 30 days after their last act
 
 | File | Purpose |
 |---|---|
-| `app.py` | Tkinter UI: tabs, first-run setup, analysis thread |
+| `app.py` | Main window: session tabs, Settings tab, first-run setup, analysis thread |
+| `reports_tab.py` | Reports tab: list, sort, filter, preview, open, rename, delete |
+| `reports.py` | Report file logic: listing, score parsing, name validation, rename and delete |
+| `md_preview.py` | Preview window with a small Markdown renderer (Tk text tags, no extra dependencies) |
+| `ui_common.py` | Theme colors and window helpers (dark theme, DPI scaling, dark title bar) |
 | `sessions.py` | Finds session transcripts, extracts user prompts, computes days left |
 | `analyzer.py` | Builds the review input and runs `claude -p /prompt-review` |
 | `config.py` | Settings defaults, load/save, path validation |

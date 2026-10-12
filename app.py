@@ -6,21 +6,19 @@ import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
-import sv_ttk
-
 import cleanup
 import config
 from analyzer import AnalysisError, run_analysis
+from reports_tab import ReportsTab
 from sessions import DEFAULT_RETENTION_DAYS, list_sessions, retention_days
 from skill_installer import TARGET as SKILL_TARGET, install_skill, skill_installed
+from ui_common import (
+    ACCENT, APP_TITLE, ERROR_FG, MUTED_FG, apply_theme, center, dark_title_bar,
+    enable_dpi_awareness, scaled,
+)
 
-APP_TITLE = "Prompt Analyzer"
 EXPIRING_SOON_DAYS = 7
-# Tuned for sv-ttk's dark theme.
-MUTED_FG = "#9a9a9a"
-ERROR_FG = "#ff6b6b"
-ACCENT = "Accent.TButton"  # sv-ttk's highlighted button style for primary actions
-SETTINGS_TAB = 2
+REPORTS_TAB, SETTINGS_TAB = 2, 3
 FIELDS = [
     ("sessions_dir", "Claude sessions folder", "dir", ""),
     ("reports_base", "Reports location", "dir", "A 'reports' subfolder will be created here."),
@@ -147,8 +145,8 @@ class SettingsDialog(tk.Toplevel):
         if parent.winfo_viewable():
             self.transient(parent)
         self.grab_set()
-        _center(self)
-        _dark_title_bar(self)
+        center(self)
+        dark_title_bar(self)
 
     def _ok(self) -> None:
         if self.form.apply(self.cfg):
@@ -178,7 +176,7 @@ class DeleteDataDialog(tk.Toplevel):
             "sessions are not touched. The app will close afterwards.",
         ]
         ttk.Label(frame, text="\n".join(lines), justify="left",
-                  wraplength=_scaled(self, 520)).pack(anchor="w")
+                  wraplength=scaled(self, 520)).pack(anchor="w")
 
         buttons = ttk.Frame(frame)
         buttons.pack(anchor="e", pady=(12, 0))
@@ -190,8 +188,8 @@ class DeleteDataDialog(tk.Toplevel):
         self.bind("<Escape>", lambda e: self.destroy())
         self.transient(parent)
         self.grab_set()
-        _center(self)
-        _dark_title_bar(self)
+        center(self)
+        dark_title_bar(self)
 
     def _confirm(self) -> None:
         self.confirmed = True
@@ -206,10 +204,11 @@ class App:
         self.retention = DEFAULT_RETENTION_DAYS
         self.results: queue.Queue = queue.Queue()
         self.busy = False
+        self.status = tk.StringVar()
 
         root.title(APP_TITLE)
         sw, sh = root.winfo_screenwidth(), root.winfo_screenheight()
-        min_w, min_h = _scaled(root, 560), _scaled(root, 420)
+        min_w, min_h = scaled(root, 560), scaled(root, 420)
         w, h = max(min_w, int(sw * 0.3)), max(min_h, int(sh * 0.3))
         root.geometry(f"{w}x{h}+{(sw - w) // 2}+{(sh - h) // 2}")
         root.minsize(min_w, min_h)
@@ -218,6 +217,10 @@ class App:
         self.notebook.pack(fill="both", expand=True, padx=8, pady=(8, 4))
         self.all_tree = self._make_tree("All sessions")
         self.fav_tree = self._make_tree("Favorites")
+        self.reports_tab = ReportsTab(
+            self.notebook, lambda: config.reports_dir(self.cfg), self.status_set,
+            lambda: self.notebook.index("current") == REPORTS_TAB)
+        self.notebook.add(self.reports_tab, text="Reports")
         self._make_settings_tab()
         self.notebook.bind("<<NotebookTabChanged>>", lambda e: self._on_tab_changed())
 
@@ -229,9 +232,11 @@ class App:
         self.analyze_btn = ttk.Button(self.bar, text="Analyze", style=ACCENT, command=self.analyze)
         self.analyze_btn.pack(side="right")
 
-        self.status = tk.StringVar()
         ttk.Label(root, textvariable=self.status, anchor="w", foreground=MUTED_FG).pack(
             fill="x", padx=8, pady=(0, 6))
+
+    def status_set(self, text: str) -> None:
+        self.status.set(text)
 
     def _make_tree(self, title: str) -> ttk.Treeview:
         frame = ttk.Frame(self.notebook)
@@ -311,6 +316,7 @@ class App:
             self.sessions = list_sessions(self.cfg["sessions_dir"])
         self.retention = retention_days(Path(self.cfg["sessions_dir"]).parent)
         self._fill_trees()
+        self.reports_tab.reload()
         self._update_buttons()
 
     def _fill_trees(self) -> None:
@@ -334,8 +340,8 @@ class App:
         return {0: self.all_tree, 1: self.fav_tree}.get(self.notebook.index("current"))
 
     def _on_tab_changed(self) -> None:
-        # The session buttons are meaningless on the Settings tab.
-        if self.notebook.index("current") == SETTINGS_TAB:
+        # The session buttons only apply to the two session tabs.
+        if self.notebook.index("current") in (REPORTS_TAB, SETTINGS_TAB):
             self.bar.pack_forget()
         elif not self.bar.winfo_ismapped():
             self.bar.pack(fill="x", padx=8, pady=(0, 4), before=self.root.pack_slaves()[-1])
@@ -395,8 +401,11 @@ class App:
         if self.busy:
             return
         tree = self._active_tree()
-        if tree is None:  # Settings tab
-            self.status.set("")
+        if tree is None:
+            if self.notebook.index("current") == REPORTS_TAB:
+                self.reports_tab.update_buttons()  # shows the report count / selection
+            else:
+                self.status.set("")
             return
         problem = None
         errors = config.validate(self.cfg)
@@ -445,6 +454,7 @@ class App:
         self.busy = False
         self._update_buttons()
         if kind == "ok":
+            self.reports_tab.reload()
             self.status.set(f"Report saved: {value}")
             os.startfile(value)
         else:
@@ -452,59 +462,12 @@ class App:
             messagebox.showerror(APP_TITLE, value)
 
 
-def _scaled(widget: tk.Misc, px: int) -> int:
-    """Convert a size designed at 100% (96 DPI) to the current display scaling."""
-    return int(px * widget.winfo_fpixels("1i") / 96)
-
-
-def _center(win: tk.Toplevel) -> None:
-    win.update_idletasks()
-    w, h = win.winfo_reqwidth(), win.winfo_reqheight()
-    x = (win.winfo_screenwidth() - w) // 2
-    y = (win.winfo_screenheight() - h) // 2
-    win.geometry(f"+{x}+{y}")
-
-
-def _dark_title_bar(win: tk.Misc) -> None:
-    """Ask Windows 10 (20H1+) / 11 to draw a dark title bar so it matches the theme."""
-    if os.name != "nt":
-        return
-    try:
-        import ctypes
-        win.update_idletasks()
-        hwnd = ctypes.windll.user32.GetParent(win.winfo_id())
-        value = ctypes.c_int(1)
-        DWMWA_USE_IMMERSIVE_DARK_MODE = 20
-        ctypes.windll.dwmapi.DwmSetWindowAttribute(
-            hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE, ctypes.byref(value), ctypes.sizeof(value))
-    except (AttributeError, OSError):
-        pass  # older Windows: keep the default title bar
-
-
-def _apply_theme(root: tk.Tk) -> None:
-    sv_ttk.set_theme("dark")
-    # sv-ttk sets backgrounds/palette from a <<ThemeChanged>> binding, which Tk 9
-    # doesn't deliver; run that step directly (harmless if it already ran).
-    root.tk.call("configure_colors")
-
-
-def _enable_dpi_awareness() -> None:
-    """Render crisply on scaled displays (125%/150%) instead of being bitmap-stretched."""
-    if os.name != "nt":
-        return
-    try:
-        import ctypes
-        ctypes.windll.shcore.SetProcessDpiAwareness(1)  # system DPI aware
-    except (AttributeError, OSError):
-        pass
-
-
 def main() -> None:
-    _enable_dpi_awareness()
+    enable_dpi_awareness()
     root = tk.Tk()
     root.withdraw()
-    _apply_theme(root)
-    _dark_title_bar(root)
+    apply_theme(root)
+    dark_title_bar(root)
     app = App(root)
     if not app.first_run_checks():
         root.destroy()

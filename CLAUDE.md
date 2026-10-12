@@ -34,9 +34,15 @@ There is no test suite.
   - When running as a frozen exe, the bundled file is read from `sys._MEIPASS`.
 - `skill\SKILL.md` is the review rubric and report format. It intentionally has **no `description`** and sets `disable-model-invocation: true`, so it adds nothing to context in the user's normal sessions. Keep it that way.
 - `cleanup.py` backs the "Delete all app data" button. It removes the skill folder and `%APPDATA%\PromptAnalyzer`. It must **never delete reports** (a user requirement), and it never touches Claude Code's own settings or sessions.
-- `app.py` is the UI. It has three tabs: All sessions, Favorites and Settings.
+- `reports.py` and `reports_tab.py` implement the Reports tab. It lists **all** `*.md` files in `<reports_base>\reports`, not just `*_prompt-review.md`, so renamed reports still appear.
+  - The date comes from the `YYYY-MM-DD_HHMMSS` file-name prefix, falling back to the file's modification time.
+  - The score is parsed from `**Overall score: N/10**` in the first 4 KB.
+  - Deleting a report there is an explicit user action that always asks for confirmation. This is allowed; only the "Delete all app data" cleanup must never touch reports.
+- `md_preview.py` renders Markdown into a `tk.Text` using tags. It deliberately supports only what `skill/SKILL.md` reports use: headings, bold/italic/code/links, lists, `>` quotes at line start, fenced code and `---`. If the report format in the skill changes, check that the renderer still covers it.
+- `ui_common.py` holds the shared theme colors and window helpers (`apply_theme`, `enable_dpi_awareness`, `scaled`, `center`, `dark_title_bar`). Use them for any new window.
+- `app.py` is the main window. Its tabs, in order, are All sessions, Favorites, Reports (`REPORTS_TAB`) and Settings (`SETTINGS_TAB`). The session button bar is hidden on the Reports and Settings tabs, and the status bar is shared by all tabs.
   - `SettingsForm` holds the path fields, the skill status and validation. It is shared by the first-run `SettingsDialog` and the Settings tab. The window is about 30% of the screen.
   - The first run shows the settings dialog, then the skill-install prompt.
   - Analysis runs on a worker thread, and its result comes back through a `queue` polled with `root.after`.
-  - Theme: `_apply_theme` calls `sv_ttk.set_theme("dark")` and then explicitly runs sv-ttk's Tcl `configure_colors`. sv-ttk normally runs that from a `<<ThemeChanged>>` binding, which Tk 9 doesn't deliver; without it, frame backgrounds stay light. Colors are tuned for dark: `MUTED_FG` and `ERROR_FG`. Primary buttons use `Accent.TButton`.
-  - The process is DPI-aware (`SetProcessDpiAwareness`), so pixel sizes are physical. Wrap fixed sizes in `_scaled()`. Title bars are made dark with `DwmSetWindowAttribute` (`_dark_title_bar`).
+  - Theme: `apply_theme` (in `ui_common.py`) calls `sv_ttk.set_theme("dark")` and then explicitly runs sv-ttk's Tcl `configure_colors`. sv-ttk normally runs that from a `<<ThemeChanged>>` binding, which Tk 9 doesn't deliver; without it, frame backgrounds stay light. Colors are tuned for dark: `MUTED_FG` and `ERROR_FG`. Primary buttons use `Accent.TButton`.
+  - The process is DPI-aware (`SetProcessDpiAwareness`), so pixel sizes are physical. Wrap fixed sizes in `scaled()`. Title bars are made dark with `DwmSetWindowAttribute` (`dark_title_bar`).
