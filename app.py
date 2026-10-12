@@ -455,8 +455,7 @@ class App:
         self._update_buttons()
         if kind == "ok":
             self.reports_tab.reload()
-            self.status.set(f"Report saved: {value}")
-            os.startfile(value)
+            self.status.set(f"Report saved: {value.name} (see the Reports tab)")
         else:
             self.status.set("Analysis failed.")
             messagebox.showerror(APP_TITLE, value)

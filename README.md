@@ -8,7 +8,7 @@ It reads your saved Claude Code sessions, takes only the messages **you** typed,
 
 - **Session browser.** All your Claude Code sessions are listed by title, project, last activity, and how many days remain before Claude Code deletes them. Sessions with 7 days or fewer left are shown in red.
 - **Favorites tab.** Double-click the ★ column, or use **☆ Toggle favorite**, to keep important sessions in a separate tab.
-- **One-click analysis.** Select one or more sessions and click **Analyze**. Claude Code runs in the background with no console window and closes when it's done, and the report opens automatically.
+- **One-click analysis.** Select one or more sessions and click **Analyze**. Claude Code runs in the background with no console window and closes when it's done. The new report appears in the **Reports** tab; nothing opens automatically.
 - **Report contents:**
   1. Summary and overall score (1–10)
   2. Per-session review, with a rating for each prompt
